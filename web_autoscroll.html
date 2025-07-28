@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoScroll Text Reader</title>
+    <meta name="description" content="Mobile automatic text scrolling app for hands-free reading">
+    <meta name="theme-color" content="#2196F3">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #2196F3;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .input-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-section h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        #textInput {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 16px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        #textInput:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        .load-btn {
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .load-btn:hover {
+            background: #45a049;
+        }
+        
+        .scroll-area {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            flex: 1;
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            min-height: 200px;
+        }
+        
+        #scrollText {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .speed-control {
+            margin-bottom: 20px;
+        }
+        
+        .speed-control label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .speed-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+        }
+        
+        .speed-slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .speed-value {
+            text-align: center;
+            margin-top: 5px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .control-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .play-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .play-btn:hover {
+            background: #45a049;
+        }
+        
+        .play-btn.playing {
+            background: #f44336;
+        }
+        
+        .play-btn.playing:hover {
+            background: #da190b;
+        }
+        
+        .reset-btn {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .reset-btn:hover {
+            background: #e68900;
+        }
+        
+        .info-btn {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .info-btn:hover {
+            background: #1976D2;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .button-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+        
+        /* Install prompt */
+        .install-prompt {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .install-btn {
+            background: white;
+            color: #2196F3;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Install Prompt -->
+        <div id="installPrompt" class="install-prompt">
+            <div>📱 Install AutoScroll as an app for the best experience!</div>
+            <button id="installBtn" class="install-btn">Install App</button>
+        </div>
+        
+        <!-- Header -->
+        <div class="header">
+            <h1>📱 AutoScroll Text Reader</h1>
+            <p>Hands-free reading with automatic scrolling</p>
+        </div>
+        
+        <!-- Text Input Section -->
+        <div class="input-section">
+            <h3>📝 Enter Your Text</h3>
+            <textarea id="textInput" placeholder="Paste or type your text here...
+
+Try this sample text:
+
+Welcome to AutoScroll Text Reader! This app provides automatic text scrolling for hands-free reading. Perfect for long articles, documents, or any text content.
+
+Features:
+• Adjustable scrolling speed
+• Play/pause controls
+• Reset functionality
+• Mobile-optimized interface
+• Works offline as a PWA
+
+Instructions:
+1. Replace this text with your content
+2. Click 'Load Text for Scrolling'
+3. Adjust the speed slider
+4. Press Play to start auto-scrolling
+5. Enjoy hands-free reading!
+
+The app works great on phones and tablets. You can install it as a Progressive Web App for the best experience."></textarea>
+            <button class="load-btn" onclick="loadText()">📄 Load Text for Scrolling</button>
+        </div>
+        
+        <!-- Scroll Area -->
+        <div class="scroll-area" id="scrollArea">
+            <div id="scrollText">Your text will appear here...
+            
+🎯 Tip: Paste some text above and click "Load Text for Scrolling" to get started!</div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <div class="speed-control">
+                <label for="speedSlider">⚡ Scrolling Speed</label>
+                <input type="range" id="speedSlider" class="speed-slider" min="0.1" max="5" value="1" step="0.1" oninput="updateSpeed(this.value)">
+                <div class="speed-value" id="speedValue">1.0x</div>
+            </div>
+            
+            <div class="button-row">
+                <button class="control-btn play-btn" id="playBtn" onclick="toggleScroll()">▶️ Play</button>
+                <button class="control-btn reset-btn" onclick="resetScroll()">⏮️ Reset</button>
+                <button class="control-btn info-btn" onclick="showInfo()">ℹ️ Info</button>
+            </div>
+            
+            <div class="status" id="status">Ready - Load text to begin</div>
+        </div>
+    </div>
+    
+    <!-- Info Modal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>📱 AutoScroll Text Reader</h2>
+            <p><strong>Version:</strong> 1.0 PWA</p>
+            
+            <h3>🌟 Features:</h3>
+            <ul>
+                <li>Automatic text scrolling</li>
+                <li>Adjustable speed (0.1x to 5.0x)</li>
+                <li>Play/pause control</li>
+                <li>Reset to top</li>
+                <li>Mobile-optimized interface</li>
+                <li>Works offline (PWA)</li>
+                <li>Install as native app</li>
+            </ul>
+            
+            <h3>📖 Instructions:</h3>
+            <ol>
+                <li>Paste or type text in the input area</li>
+                <li>Click "Load Text for Scrolling"</li>
+                <li>Adjust speed with the slider</li>
+                <li>Press Play to start auto-scrolling</li>
+                <li>Use Pause to stop, Reset to restart</li>
+            </ol>
+            
+            <h3>📱 Install as App:</h3>
+            <p>For the best experience, install this as a Progressive Web App (PWA) on your device. Look for the "Install" or "Add to Home Screen" option in your browser menu.</p>
+            
+            <p><strong>Perfect for:</strong> Reading long articles, documents, studying, or any text content hands-free!</p>
+            
+            <p><em>Created by DeathKnell837</em></p>
+        </div>
+    </div>
+    
+    <script>
+        let scrollSpeed = 1.0;
+        let isScrolling = false;
+        let scrollInterval = null;
+        let scrollArea = document.getElementById('scrollArea');
+        let scrollText = document.getElementById('scrollText');
+        let playBtn = document.getElementById('playBtn');
+        let status = document.getElementById('status');
+        
+        // PWA Install
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.style.display = 'block';
+        });
+        
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installPrompt.style.display = 'none';
+            }
+        });
+        
+        function loadText() {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                alert('Please enter some text first!');
+                return;
+            }
+            
+            scrollText.textContent = text;
+            scrollArea.scrollTop = 0;
+            status.textContent = `Text loaded (${text.length} characters) - Ready to scroll`;
+        }
+        
+        function updateSpeed(value) {
+            scrollSpeed = parseFloat(value);
+            document.getElementById('speedValue').textContent = value + 'x';
+            if (isScrolling) {
+                status.textContent = `Scrolling at ${value}x speed`;
+            }
+        }
+        
+        function toggleScroll() {
+            if (!scrollText.textContent || scrollText.textContent === 'Your text will appear here...\\n            \\n🎯 Tip: Paste some text above and click "Load Text for Scrolling" to get started!') {
+                alert('Please load some text first!');
+                return;
+            }
+            
+            if (isScrolling) {
+                stopScroll();
+            } else {
+                startScroll();
+            }
+        }
+        
+        function startScroll() {
+            isScrolling = true;
+            playBtn.textContent = '⏸️ Pause';
+            playBtn.classList.add('playing');
+            status.textContent = `Scrolling at ${scrollSpeed}x speed`;
+            
+            scrollInterval = setInterval(() => {
+                if (!isScrolling) return;
+                
+                const scrollAmount = scrollSpeed * 2;
+                scrollArea.scrollTop += scrollAmount;
+                
+                // Check if reached bottom
+                if (scrollArea.scrollTop >= scrollArea.scrollHeight - scrollArea.clientHeight) {
+                    stopScroll();
+                    status.textContent = 'Reached end of text';
+                    alert('Reached the end of the text!\\nClick Reset to scroll again.');
+                }
+            }, 50);
+        }
+        
+        function stopScroll() {
+            isScrolling = false;
+            playBtn.textContent = '▶️ Play';
+            playBtn.classList.remove('playing');
+            status.textContent = 'Scrolling paused';
+            
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+        }
+        
+        function resetScroll() {
+            scrollArea.scrollTop = 0;
+            if (isScrolling) {
+                stopScroll();
+            }
+            status.textContent = 'Reset to top - Ready to scroll';
+        }
+        
+        function showInfo() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Handle page visibility change (pause when tab is hidden)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && isScrolling) {
+                stopScroll();
+            }
+        });
+        
+        // Prevent zoom on double tap (iOS)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed');
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
