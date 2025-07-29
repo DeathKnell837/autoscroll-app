@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/background">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/welcome_title"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/welcome_subtitle"
+        android:textSize="16sp"
+        android:textColor="@color/on_background"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Status Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:elevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/service_ready"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Permission Setup -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Setup Required Permissions:"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/on_background"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Accessibility Permission -->
+    <Button
+        android:id="@+id/btnSetupAccessibility"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/setup_accessibility"
+        android:background="@color/primary"
+        android:textColor="@color/on_primary"
+        android:layout_marginBottom="12dp"
+        android:padding="16dp" />
+
+    <!-- Overlay Permission -->
+    <Button
+        android:id="@+id/btnSetupOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/setup_overlay"
+        android:background="@color/primary"
+        android:textColor="@color/on_primary"
+        android:layout_marginBottom="24dp"
+        android:padding="16dp" />
+
+    <!-- Service Controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btnStartService"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/start_service"
+            android:background="@color/button_start"
+            android:textColor="@color/button_text"
+            android:layout_marginEnd="8dp"
+            android:padding="16dp" />
+
+        <Button
+            android:id="@+id/btnStopService"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/stop_service"
+            android:background="@color/button_stop"
+            android:textColor="@color/button_text"
+            android:layout_marginStart="8dp"
+            android:padding="16dp" />
+
+    </LinearLayout>
+
+    <!-- Instructions -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Instructions:\n1. Enable Accessibility Service\n2. Grant Overlay Permission\n3. Start Echo Scroll\n4. Open your reading app\n5. Use floating controls to auto-scroll"
+        android:textSize="14sp"
+        android:textColor="@color/on_background"
+        android:layout_marginTop="24dp"
+        android:padding="16dp"
+        android:background="@color/surface"
+        android:elevation="2dp" />
+
+</LinearLayout>

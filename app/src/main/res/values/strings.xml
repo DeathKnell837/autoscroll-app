@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Echo Scroll</string>
+    <string name="accessibility_service_description">Echo Scroll helps slow readers by automatically scrolling content in reading apps like QuickNovel. Enable this service to allow Echo Scroll to control scrolling in other apps.</string>
+    
+    <!-- Main Activity -->
+    <string name="welcome_title">Welcome to Echo Scroll</string>
+    <string name="welcome_subtitle">Auto-scrolling for slow readers</string>
+    <string name="setup_accessibility">Setup Accessibility Service</string>
+    <string name="setup_overlay">Setup Overlay Permission</string>
+    <string name="start_service">Start Echo Scroll</string>
+    <string name="stop_service">Stop Echo Scroll</string>
+    
+    <!-- Overlay Controls -->
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="speed">Speed</string>
+    <string name="speed_1">Very Slow</string>
+    <string name="speed_2">Slow</string>
+    <string name="speed_3">Normal</string>
+    <string name="speed_4">Fast</string>
+    <string name="speed_5">Faster</string>
+    
+    <!-- Notifications -->
+    <string name="service_running">Echo Scroll is running</string>
+    <string name="service_description">Auto-scrolling active. Tap to open controls.</string>
+    <string name="channel_name">Echo Scroll Service</string>
+    <string name="channel_description">Notifications for Echo Scroll background service</string>
+    
+    <!-- Permissions -->
+    <string name="overlay_permission_required">Overlay permission is required for floating controls</string>
+    <string name="accessibility_permission_required">Accessibility permission is required for auto-scrolling</string>
+    <string name="permission_granted">Permission granted!</string>
+    
+    <!-- Status -->
+    <string name="scrolling_active">Auto-scrolling active</string>
+    <string name="scrolling_paused">Auto-scrolling paused</string>
+    <string name="service_ready">Echo Scroll ready</string>
+</resources>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="@color/primary"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z" />
+    
+    <!-- Scroll arrows -->
+    <path
+        android:fillColor="@color/on_primary"
+        android:pathData="M7,9l5,5 5,-5z" />
+    
+    <!-- Text lines representing content -->
+    <path
+        android:fillColor="@color/on_primary"
+        android:pathData="M6,6h12v1H6z" />
+    <path
+        android:fillColor="@color/on_primary"
+        android:pathData="M6,8h10v1H6z" />
+    <path
+        android:fillColor="@color/on_primary"
+        android:pathData="M6,17h12v1H6z" />
+    <path
+        android:fillColor="@color/on_primary"
+        android:pathData="M6,19h8v1H6z" />
+</vector>
