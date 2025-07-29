@@ -2,6 +2,19 @@
 
 **Echo Scroll** is an Android accessibility app designed specifically for slow readers. It provides automatic vertical scrolling in any reading app (like QuickNovel, Kindle, Chrome, etc.) with a floating overlay control panel.
 
+## 🚀 **GET STARTED NOW**
+
+### 📱 **Immediate Options**
+1. **🌐 Try Web Demo**: Open [`web-version.html`](web-version.html) for instant preview
+2. **📦 Build APK**: Use [GitHub Codespaces](https://github.com/codespaces) for free APK building
+3. **📥 Download APK**: Check [GitHub Releases](https://github.com/DeathKnell837/echo-scroll/releases) for pre-built APKs
+
+### 📚 **Quick Guides**
+- **[⚡ QUICK_START.md](QUICK_START.md)**: 5-minute setup guide
+- **[📱 INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)**: Complete setup instructions
+- **[🔨 BUILD_GUIDE.md](BUILD_GUIDE.md)**: Multiple APK building methods
+- **[🎯 APK_SOLUTIONS.md](APK_SOLUTIONS.md)**: Get your APK multiple ways
+
 ## 🌟 Features
 
 ### ✨ Core Functionality
