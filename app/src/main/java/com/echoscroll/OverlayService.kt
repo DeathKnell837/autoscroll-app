@@ -27,15 +27,43 @@ class OverlayService : Service() {
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
     private lateinit var btnClose: Button
+    private lateinit var btnTouchMode: Button
+    private lateinit var btnSensitivityUp: Button
+    private lateinit var btnSensitivityDown: Button
     private lateinit var currentSpeedText: TextView
     private lateinit var statusIndicator: TextView
+    private lateinit var sensitivityText: TextView
+    private lateinit var touchPositionIndicator: TextView
+    private lateinit var gestureHelp: TextView
+    private lateinit var touchSensitivityLayout: LinearLayout
     private lateinit var speedButtons: List<Button>
+    
+    // Touch mode state
+    private var isTouchModeEnabled = false
+    private var touchSensitivity = 0.5f
 
     private val scrollStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == ScrollAccessibilityService.ACTION_SCROLL_STATE_CHANGED) {
-                isScrolling = intent.getBooleanExtra(ScrollAccessibilityService.EXTRA_IS_SCROLLING, false)
-                updateUI()
+            when (intent?.action) {
+                ScrollAccessibilityService.ACTION_SCROLL_STATE_CHANGED -> {
+                    isScrolling = intent.getBooleanExtra(ScrollAccessibilityService.EXTRA_IS_SCROLLING, false)
+                    updateUI()
+                }
+                ScrollAccessibilityService.ACTION_TOUCH_SCROLL_START -> {
+                    val x = intent.getFloatExtra(ScrollAccessibilityService.EXTRA_TOUCH_X, 0f)
+                    val y = intent.getFloatExtra(ScrollAccessibilityService.EXTRA_TOUCH_Y, 0f)
+                    showTouchPosition(x, y)
+                }
+                ScrollAccessibilityService.ACTION_TOUCH_GESTURE -> {
+                    val gestureType = intent.getStringExtra(ScrollAccessibilityService.EXTRA_GESTURE_TYPE)
+                    val x = intent.getFloatExtra(ScrollAccessibilityService.EXTRA_TOUCH_X, 0f)
+                    val y = intent.getFloatExtra(ScrollAccessibilityService.EXTRA_TOUCH_Y, 0f)
+                    showGestureInfo(gestureType, x, y)
+                }
+                ScrollAccessibilityService.ACTION_SET_SPEED -> {
+                    currentSpeed = intent.getIntExtra(ScrollAccessibilityService.EXTRA_SPEED, 3)
+                    updateUI()
+                }
             }
         }
     }
@@ -64,7 +92,12 @@ class OverlayService : Service() {
     }
 
     private fun registerScrollStateReceiver() {
-        val filter = IntentFilter(ScrollAccessibilityService.ACTION_SCROLL_STATE_CHANGED)
+        val filter = IntentFilter().apply {
+            addAction(ScrollAccessibilityService.ACTION_SCROLL_STATE_CHANGED)
+            addAction(ScrollAccessibilityService.ACTION_TOUCH_SCROLL_START)
+            addAction(ScrollAccessibilityService.ACTION_TOUCH_GESTURE)
+            addAction(ScrollAccessibilityService.ACTION_SET_SPEED)
+        }
         registerReceiver(scrollStateReceiver, filter)
     }
 
@@ -112,8 +145,15 @@ class OverlayService : Service() {
             btnStart = view.findViewById(R.id.btnStart)
             btnStop = view.findViewById(R.id.btnStop)
             btnClose = view.findViewById(R.id.btnClose)
+            btnTouchMode = view.findViewById(R.id.btnTouchMode)
+            btnSensitivityUp = view.findViewById(R.id.btnSensitivityUp)
+            btnSensitivityDown = view.findViewById(R.id.btnSensitivityDown)
             currentSpeedText = view.findViewById(R.id.currentSpeedText)
             statusIndicator = view.findViewById(R.id.statusIndicator)
+            sensitivityText = view.findViewById(R.id.sensitivityText)
+            touchPositionIndicator = view.findViewById(R.id.touchPositionIndicator)
+            gestureHelp = view.findViewById(R.id.gestureHelp)
+            touchSensitivityLayout = view.findViewById(R.id.touchSensitivityLayout)
             
             speedButtons = listOf(
                 view.findViewById(R.id.btnSpeed1),
@@ -137,6 +177,20 @@ class OverlayService : Service() {
 
         btnClose.setOnClickListener {
             stopSelf()
+        }
+        
+        // Touch mode toggle
+        btnTouchMode.setOnClickListener {
+            toggleTouchMode()
+        }
+        
+        // Sensitivity controls
+        btnSensitivityUp.setOnClickListener {
+            adjustSensitivity(0.1f)
+        }
+        
+        btnSensitivityDown.setOnClickListener {
+            adjustSensitivity(-0.1f)
         }
 
         // Speed buttons
@@ -193,6 +247,60 @@ class OverlayService : Service() {
         sendBroadcast(Intent(ScrollAccessibilityService.ACTION_STOP_SCROLL))
         Log.d(TAG, "Stop scrolling requested")
     }
+    
+    private fun toggleTouchMode() {
+        isTouchModeEnabled = !isTouchModeEnabled
+        
+        // Send touch mode state to accessibility service
+        sendBroadcast(Intent(ScrollAccessibilityService.ACTION_TOGGLE_TOUCH_MODE).apply {
+            putExtra(ScrollAccessibilityService.EXTRA_TOUCH_MODE, isTouchModeEnabled)
+        })
+        
+        updateUI()
+        Log.d(TAG, "Touch mode ${if (isTouchModeEnabled) "enabled" else "disabled"}")
+    }
+    
+    private fun adjustSensitivity(delta: Float) {
+        touchSensitivity = (touchSensitivity + delta).coerceIn(0.0f, 1.0f)
+        
+        // Send sensitivity to accessibility service
+        sendBroadcast(Intent(ScrollAccessibilityService.ACTION_SET_TOUCH_SENSITIVITY).apply {
+            putExtra(ScrollAccessibilityService.EXTRA_SENSITIVITY, touchSensitivity)
+        })
+        
+        updateUI()
+        Log.d(TAG, "Touch sensitivity adjusted to $touchSensitivity")
+    }
+    
+    private fun showTouchPosition(x: Float, y: Float) {
+        touchPositionIndicator.text = "Touch: (${x.toInt()}, ${y.toInt()})"
+        touchPositionIndicator.visibility = View.VISIBLE
+        
+        // Hide after 2 seconds
+        Handler(Looper.getMainLooper()).postDelayed({
+            touchPositionIndicator.visibility = View.GONE
+        }, 2000)
+    }
+    
+    private fun showGestureInfo(gestureType: String?, x: Float, y: Float) {
+        gestureType?.let { gesture ->
+            val gestureText = when (gesture) {
+                "SINGLE_TAP" -> "👆 Tap"
+                "DOUBLE_TAP" -> "👆👆 Double-tap"
+                "LONG_PRESS" -> "👆⏱️ Long-press"
+                "SWIPE_UP" -> "👆⬆️ Swipe up"
+                "SWIPE_DOWN" -> "👆⬇️ Swipe down"
+                else -> gesture
+            }
+            
+            statusIndicator.text = "$gestureText at (${x.toInt()}, ${y.toInt()})"
+            
+            // Reset status after 1 second
+            Handler(Looper.getMainLooper()).postDelayed({
+                updateUI()
+            }, 1000)
+        }
+    }
 
     private fun setSpeed(speed: Int) {
         currentSpeed = speed
@@ -208,15 +316,29 @@ class OverlayService : Service() {
         currentSpeedText.text = permissionHelper.getSpeedDescription(currentSpeed)
         
         // Update status
-        statusIndicator.text = if (isScrolling) {
-            getString(R.string.scrolling_active)
-        } else {
-            getString(R.string.scrolling_paused)
+        statusIndicator.text = when {
+            isTouchModeEnabled && isScrolling -> "Touch scrolling active"
+            isTouchModeEnabled -> "Touch mode ready"
+            isScrolling -> getString(R.string.scrolling_active)
+            else -> getString(R.string.scrolling_paused)
         }
         
         // Update button states
-        btnStart.isEnabled = !isScrolling
+        btnStart.isEnabled = !isScrolling && !isTouchModeEnabled
         btnStop.isEnabled = isScrolling
+        
+        // Update touch mode button
+        btnTouchMode.text = if (isTouchModeEnabled) "ON" else "OFF"
+        btnTouchMode.setBackgroundColor(
+            if (isTouchModeEnabled) getColor(R.color.button_start) else getColor(R.color.error)
+        )
+        
+        // Show/hide touch mode controls
+        touchSensitivityLayout.visibility = if (isTouchModeEnabled) View.VISIBLE else View.GONE
+        gestureHelp.visibility = if (isTouchModeEnabled) View.VISIBLE else View.GONE
+        
+        // Update sensitivity display
+        sensitivityText.text = "${(touchSensitivity * 100).toInt()}%"
         
         // Highlight current speed button
         speedButtons.forEachIndexed { index, button ->
@@ -238,5 +360,9 @@ class OverlayService : Service() {
 
     companion object {
         private const val TAG = "OverlayService"
+    }
+    
+    private fun getColor(colorRes: Int): Int {
+        return resources.getColor(colorRes, null)
     }
 }

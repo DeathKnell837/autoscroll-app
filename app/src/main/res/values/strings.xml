@@ -5,11 +5,12 @@
     
     <!-- Main Activity -->
     <string name="welcome_title">Welcome to Echo Scroll</string>
-    <string name="welcome_subtitle">Auto-scrolling for slow readers</string>
+    <string name="welcome_subtitle">Auto-scrolling for slow readers with touch control</string>
     <string name="setup_accessibility">Setup Accessibility Service</string>
     <string name="setup_overlay">Setup Overlay Permission</string>
     <string name="start_service">Start Echo Scroll</string>
     <string name="stop_service">Stop Echo Scroll</string>
+    <string name="touch_mode_description">Touch anywhere on screen to start scrolling from that position</string>
     
     <!-- Overlay Controls -->
     <string name="start">Start</string>
@@ -36,4 +37,14 @@
     <string name="scrolling_active">Auto-scrolling active</string>
     <string name="scrolling_paused">Auto-scrolling paused</string>
     <string name="service_ready">Echo Scroll ready</string>
+    <string name="touch_mode_ready">Touch mode ready</string>
+    <string name="touch_scrolling_active">Touch scrolling active</string>
+    
+    <!-- Touch Mode -->
+    <string name="touch_mode">Touch Mode</string>
+    <string name="touch_mode_on">ON</string>
+    <string name="touch_mode_off">OFF</string>
+    <string name="sensitivity">Sensitivity</string>
+    <string name="touch_instructions">Touch anywhere on screen to start scrolling from that position</string>
+    <string name="gesture_help">Tap: Start/Pause\nDouble-tap: Stop\nLong-press: Speed</string>
 </resources>

@@ -223,7 +223,7 @@
     <div class="container">
         <div class="logo">📱</div>
         <h1>Echo Scroll</h1>
-        <p class="subtitle">Auto-scrolling for slow readers</p>
+        <p class="subtitle">Auto-scrolling for slow readers with touch control</p>
 
         <div class="controls">
             <div class="current-speed">Speed: <span id="speedText">Normal (3)</span></div>
@@ -239,6 +239,13 @@
             <div class="main-controls">
                 <button class="control-btn start-btn" onclick="startScrolling()">▶️ Start</button>
                 <button class="control-btn stop-btn" onclick="stopScrolling()">⏹️ Stop</button>
+            </div>
+            
+            <div style="margin: 15px 0;">
+                <label style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <input type="checkbox" id="touchMode" onchange="toggleTouchMode()" style="transform: scale(1.5);">
+                    <span style="font-weight: bold;">Touch Mode</span>
+                </label>
             </div>
         </div>
 
@@ -259,11 +266,16 @@
             <h3>🎯 How to Use Echo Scroll</h3>
             <ol>
                 <li><strong>Choose Speed:</strong> Click buttons 1-5 (1=slowest, 5=fastest)</li>
-                <li><strong>Start Reading:</strong> Open your reading app (QuickNovel, Kindle, etc.)</li>
-                <li><strong>Position Text:</strong> Scroll to where you want to start reading</li>
-                <li><strong>Start Auto-scroll:</strong> Click the Start button</li>
-                <li><strong>Adjust Speed:</strong> Change speed while scrolling if needed</li>
-                <li><strong>Stop/Pause:</strong> Click Stop to pause scrolling</li>
+                <li><strong>Enable Touch Mode:</strong> Check the Touch Mode checkbox</li>
+                <li><strong>Touch to Scroll:</strong> Click anywhere on this page to start scrolling from that position</li>
+                <li><strong>Gesture Controls:</strong>
+                    <ul>
+                        <li>Single click: Start/pause scrolling</li>
+                        <li>Double click: Stop scrolling</li>
+                        <li>Long press: Change speed</li>
+                    </ul>
+                </li>
+                <li><strong>Manual Controls:</strong> Use Start/Stop buttons when Touch Mode is off</li>
             </ol>
         </div>
 
@@ -276,6 +288,9 @@
         let currentSpeed = 3;
         let isScrolling = false;
         let scrollInterval;
+        let touchModeEnabled = false;
+        let lastClickTime = 0;
+        let clickCount = 0;
 
         const speedNames = {
             1: "Very Slow (1)",
@@ -348,6 +363,67 @@
         // Initialize
         setSpeed(3);
         
+        function toggleTouchMode() {
+            touchModeEnabled = document.getElementById('touchMode').checked;
+            updateStatus('ready', touchModeEnabled ? '👆 Touch mode enabled - Click anywhere to scroll!' : '🎮 Manual mode - Use buttons to control');
+        }
+        
+        // Touch mode click handler
+        document.addEventListener('click', (e) => {
+            if (!touchModeEnabled) return;
+            
+            // Ignore clicks on controls
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+            
+            const currentTime = Date.now();
+            const timeDiff = currentTime - lastClickTime;
+            
+            if (timeDiff < 300) {
+                // Double click
+                clickCount++;
+                if (clickCount === 2) {
+                    stopScrolling();
+                    updateStatus('paused', '⏹️ Double-click detected - Scrolling stopped');
+                    clickCount = 0;
+                }
+            } else {
+                // Single click
+                clickCount = 1;
+                setTimeout(() => {
+                    if (clickCount === 1) {
+                        if (isScrolling) {
+                            stopScrolling();
+                            updateStatus('paused', '⏸️ Touch pause - Click again to resume');
+                        } else {
+                            startScrolling();
+                            updateStatus('scrolling', `🔄 Touch scrolling from position (${e.clientX}, ${e.clientY})`);
+                        }
+                    }
+                    clickCount = 0;
+                }, 300);
+            }
+            
+            lastClickTime = currentTime;
+        });
+        
+        // Long press detection
+        let pressTimer;
+        document.addEventListener('mousedown', (e) => {
+            if (!touchModeEnabled) return;
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+            
+            pressTimer = setTimeout(() => {
+                // Long press - cycle speed
+                const newSpeed = currentSpeed >= 5 ? 1 : currentSpeed + 1;
+                setSpeed(newSpeed);
+                updateStatus('ready', `⚡ Long-press detected - Speed changed to ${newSpeed}`);
+            }, 500);
+        });
+        
+        document.addEventListener('mouseup', () => {
+            clearTimeout(pressTimer);
+        });
+        
         // Add keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
@@ -360,6 +436,9 @@
             } else if (e.code >= 'Digit1' && e.code <= 'Digit5') {
                 const speed = parseInt(e.code.slice(-1));
                 setSpeed(speed);
+            } else if (e.code === 'KeyT') {
+                document.getElementById('touchMode').checked = !touchModeEnabled;
+                toggleTouchMode();
             }
         });
 

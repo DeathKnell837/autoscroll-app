@@ -120,7 +120,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Instructions:\n1. Enable Accessibility Service\n2. Grant Overlay Permission\n3. Start Echo Scroll\n4. Open your reading app\n5. Use floating controls to auto-scroll"
+        android:text="Instructions:\n1. Enable Accessibility Service\n2. Grant Overlay Permission\n3. Start Echo Scroll\n4. Open your reading app (QuickNovel, Kindle, etc.)\n5. Toggle Touch Mode ON in floating panel\n6. Touch anywhere on screen to start scrolling from that position!\n\nTouch Gestures:\n• Single tap: Start/pause scrolling\n• Double tap: Stop scrolling\n• Long press: Change speed\n• Swipe up/down: Adjust speed"
         android:textSize="14sp"
         android:textColor="@color/on_background"
         android:layout_marginTop="24dp"

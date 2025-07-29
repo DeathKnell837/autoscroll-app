@@ -27,6 +27,30 @@
         android:layout_gravity="center"
         android:layout_marginBottom="8dp" />
 
+    <!-- Touch Mode Toggle -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            style="@style/OverlayText"
+            android:text="Touch Mode:"
+            android:textSize="10sp" />
+
+        <Button
+            android:id="@+id/btnTouchMode"
+            android:layout_width="50dp"
+            android:layout_height="25dp"
+            android:text="OFF"
+            android:textSize="9sp"
+            android:textColor="@color/button_text"
+            android:background="@color/error"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
     <!-- Control Buttons -->
     <LinearLayout
         android:layout_width="wrap_content"
@@ -121,6 +145,51 @@
         android:textStyle="bold"
         android:layout_marginTop="4dp" />
 
+    <!-- Touch Sensitivity (shown when touch mode is ON) -->
+    <LinearLayout
+        android:id="@+id/touchSensitivityLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            style="@style/OverlayText"
+            android:text="Sensitivity:"
+            android:textSize="9sp" />
+
+        <Button
+            android:id="@+id/btnSensitivityDown"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:text="-"
+            android:textSize="10sp"
+            android:textColor="@color/button_text"
+            android:background="@color/primary"
+            android:layout_margin="2dp" />
+
+        <TextView
+            android:id="@+id/sensitivityText"
+            style="@style/OverlayText"
+            android:text="50%"
+            android:textSize="9sp"
+            android:minWidth="30dp"
+            android:gravity="center" />
+
+        <Button
+            android:id="@+id/btnSensitivityUp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:text="+"
+            android:textSize="10sp"
+            android:textColor="@color/button_text"
+            android:background="@color/primary"
+            android:layout_margin="2dp" />
+
+    </LinearLayout>
+
     <!-- Status Indicator -->
     <TextView
         android:id="@+id/statusIndicator"
@@ -128,6 +197,27 @@
         android:text="@string/scrolling_paused"
         android:layout_gravity="center"
         android:textSize="10sp"
+        android:layout_marginTop="4dp" />
+
+    <!-- Touch Position Indicator (shown when touch mode is active) -->
+    <TextView
+        android:id="@+id/touchPositionIndicator"
+        style="@style/OverlayText"
+        android:text=""
+        android:layout_gravity="center"
+        android:textSize="8sp"
+        android:visibility="gone"
+        android:layout_marginTop="2dp" />
+
+    <!-- Gesture Help (shown when touch mode is ON) -->
+    <TextView
+        android:id="@+id/gestureHelp"
+        style="@style/OverlayText"
+        android:text="Tap: Start/Pause\nDouble-tap: Stop\nLong-press: Speed"
+        android:layout_gravity="center"
+        android:textSize="7sp"
+        android:gravity="center"
+        android:visibility="gone"
         android:layout_marginTop="4dp" />
 
     <!-- Close Button -->

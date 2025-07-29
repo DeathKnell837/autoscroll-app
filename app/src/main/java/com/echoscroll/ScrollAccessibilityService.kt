@@ -13,15 +13,18 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.MotionEvent
 import com.echoscroll.utils.PermissionHelper
 
-class ScrollAccessibilityService : AccessibilityService() {
+class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.TouchScrollListener {
 
     private var isScrolling = false
     private var scrollSpeed = 3 // Default speed level
     private var scrollHandler = Handler(Looper.getMainLooper())
     private var scrollRunnable: Runnable? = null
     private lateinit var permissionHelper: PermissionHelper
+    private lateinit var touchScrollManager: TouchScrollManager
+    private var isTouchModeEnabled = false
 
     private val scrollReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -30,9 +33,18 @@ class ScrollAccessibilityService : AccessibilityService() {
                 ACTION_STOP_SCROLL -> stopScrolling()
                 ACTION_SET_SPEED -> {
                     scrollSpeed = intent.getIntExtra(EXTRA_SPEED, 3)
+                    touchScrollManager.setScrollSpeed(scrollSpeed)
                     if (isScrolling) {
                         restartScrolling()
                     }
+                }
+                ACTION_TOGGLE_TOUCH_MODE -> {
+                    isTouchModeEnabled = intent.getBooleanExtra(EXTRA_TOUCH_MODE, false)
+                    touchScrollManager.setTouchModeEnabled(isTouchModeEnabled)
+                }
+                ACTION_SET_TOUCH_SENSITIVITY -> {
+                    val sensitivity = intent.getFloatExtra(EXTRA_SENSITIVITY, 0.5f)
+                    touchScrollManager.setTouchSensitivity(sensitivity)
                 }
             }
         }
@@ -41,6 +53,8 @@ class ScrollAccessibilityService : AccessibilityService() {
     override fun onCreate() {
         super.onCreate()
         permissionHelper = PermissionHelper(this)
+        touchScrollManager = TouchScrollManager(this)
+        touchScrollManager.setTouchScrollListener(this)
         registerScrollReceiver()
         Log.d(TAG, "ScrollAccessibilityService created")
     }
@@ -51,8 +65,88 @@ class ScrollAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // We don't need to handle accessibility events for our use case
-        // The service is primarily used for gesture performance
+        event?.let { 
+            // Handle touch events for touch-to-scroll functionality
+            if (isTouchModeEnabled && event.eventType == AccessibilityEvent.TYPE_TOUCH_INTERACTION_START) {
+                handleTouchEvent(event)
+            }
+            
+            // Auto-pause scrolling when user is actively interacting
+            if (touchScrollManager.isUserInteracting() && isScrolling) {
+                pauseForUserInteraction()
+            }
+        }
+    }
+    
+    private fun handleTouchEvent(event: AccessibilityEvent) {
+        try {
+            // Extract touch coordinates from the event
+            val source = event.source
+            if (source != null) {
+                val rect = android.graphics.Rect()
+                source.getBoundsInScreen(rect)
+                
+                val x = rect.centerX().toFloat()
+                val y = rect.centerY().toFloat()
+                
+                touchScrollManager.processTouchEvent(x, y, event.eventTime)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error handling touch event", e)
+        }
+    }
+    
+    private fun pauseForUserInteraction() {
+        if (isScrolling) {
+            stopScrolling()
+            
+            // Auto-resume after user stops interacting
+            scrollHandler.postDelayed({
+                if (!touchScrollManager.isUserInteracting()) {
+                    touchScrollManager.resumeFromLastPosition()
+                }
+            }, 3000) // Resume after 3 seconds of inactivity
+        }
+    }
+    
+    // TouchScrollManager.TouchScrollListener implementation
+    override fun onTouchScrollStart(x: Float, y: Float) {
+        Log.d(TAG, "Touch scroll started at ($x, $y)")
+        
+        // Start scrolling from the touched position
+        startScrolling()
+        
+        // Notify overlay service
+        sendBroadcast(Intent(ACTION_TOUCH_SCROLL_START).apply {
+            putExtra(EXTRA_TOUCH_X, x)
+            putExtra(EXTRA_TOUCH_Y, y)
+        })
+    }
+    
+    override fun onTouchScrollStop() {
+        Log.d(TAG, "Touch scroll stopped")
+        stopScrolling()
+    }
+    
+    override fun onTouchGesture(gesture: TouchScrollManager.TouchGesture, x: Float, y: Float) {
+        Log.d(TAG, "Touch gesture: $gesture at ($x, $y)")
+        
+        // Notify overlay service about gesture
+        sendBroadcast(Intent(ACTION_TOUCH_GESTURE).apply {
+            putExtra(EXTRA_GESTURE_TYPE, gesture.name)
+            putExtra(EXTRA_TOUCH_X, x)
+            putExtra(EXTRA_TOUCH_Y, y)
+        })
+    }
+    
+    override fun onScrollSpeedChange(newSpeed: Int) {
+        scrollSpeed = newSpeed
+        Log.d(TAG, "Scroll speed changed to $newSpeed")
+        
+        // Notify overlay service
+        sendBroadcast(Intent(ACTION_SET_SPEED).apply {
+            putExtra(EXTRA_SPEED, newSpeed)
+        })
     }
 
     override fun onInterrupt() {
@@ -63,6 +157,7 @@ class ScrollAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         stopScrolling()
+        touchScrollManager.setTouchModeEnabled(false)
         unregisterReceiver(scrollReceiver)
         Log.d(TAG, "ScrollAccessibilityService destroyed")
     }
@@ -72,6 +167,8 @@ class ScrollAccessibilityService : AccessibilityService() {
             addAction(ACTION_START_SCROLL)
             addAction(ACTION_STOP_SCROLL)
             addAction(ACTION_SET_SPEED)
+            addAction(ACTION_TOGGLE_TOUCH_MODE)
+            addAction(ACTION_SET_TOUCH_SENSITIVITY)
         }
         registerReceiver(scrollReceiver, filter)
     }
@@ -169,10 +266,19 @@ class ScrollAccessibilityService : AccessibilityService() {
         const val ACTION_START_SCROLL = "com.echoscroll.START_SCROLL"
         const val ACTION_STOP_SCROLL = "com.echoscroll.STOP_SCROLL"
         const val ACTION_SET_SPEED = "com.echoscroll.SET_SPEED"
+        const val ACTION_TOGGLE_TOUCH_MODE = "com.echoscroll.TOGGLE_TOUCH_MODE"
+        const val ACTION_SET_TOUCH_SENSITIVITY = "com.echoscroll.SET_TOUCH_SENSITIVITY"
         const val ACTION_SCROLL_STATE_CHANGED = "com.echoscroll.SCROLL_STATE_CHANGED"
+        const val ACTION_TOUCH_SCROLL_START = "com.echoscroll.TOUCH_SCROLL_START"
+        const val ACTION_TOUCH_GESTURE = "com.echoscroll.TOUCH_GESTURE"
         
         // Extras
         const val EXTRA_SPEED = "speed"
         const val EXTRA_IS_SCROLLING = "is_scrolling"
+        const val EXTRA_TOUCH_MODE = "touch_mode"
+        const val EXTRA_SENSITIVITY = "sensitivity"
+        const val EXTRA_TOUCH_X = "touch_x"
+        const val EXTRA_TOUCH_Y = "touch_y"
+        const val EXTRA_GESTURE_TYPE = "gesture_type"
     }
 }
