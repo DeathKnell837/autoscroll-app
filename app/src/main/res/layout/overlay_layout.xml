@@ -51,6 +51,32 @@
 
     </LinearLayout>
 
+    <!-- Hold-to-Scroll Toggle (shown when touch mode is ON) -->
+    <LinearLayout
+        android:id="@+id/holdScrollLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            style="@style/OverlayText"
+            android:text="Hold to Scroll:"
+            android:textSize="9sp" />
+
+        <Button
+            android:id="@+id/btnHoldScroll"
+            android:layout_width="40dp"
+            android:layout_height="20dp"
+            android:text="ON"
+            android:textSize="8sp"
+            android:textColor="@color/button_text"
+            android:background="@color/button_start"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
     <!-- Control Buttons -->
     <LinearLayout
         android:layout_width="wrap_content"
@@ -213,7 +239,7 @@
     <TextView
         android:id="@+id/gestureHelp"
         style="@style/OverlayText"
-        android:text="Tap: Start/Pause\nDouble-tap: Stop\nLong-press: Speed"
+        android:text="Hold: Scroll while touching\nQuick tap: Start/Pause\nDouble-tap: Stop"
         android:layout_gravity="center"
         android:textSize="7sp"
         android:gravity="center"

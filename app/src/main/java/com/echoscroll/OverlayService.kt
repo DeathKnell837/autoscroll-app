@@ -28,6 +28,7 @@ class OverlayService : Service() {
     private lateinit var btnStop: Button
     private lateinit var btnClose: Button
     private lateinit var btnTouchMode: Button
+    private lateinit var btnHoldScroll: Button
     private lateinit var btnSensitivityUp: Button
     private lateinit var btnSensitivityDown: Button
     private lateinit var currentSpeedText: TextView
@@ -36,10 +37,12 @@ class OverlayService : Service() {
     private lateinit var touchPositionIndicator: TextView
     private lateinit var gestureHelp: TextView
     private lateinit var touchSensitivityLayout: LinearLayout
+    private lateinit var holdScrollLayout: LinearLayout
     private lateinit var speedButtons: List<Button>
     
     // Touch mode state
     private var isTouchModeEnabled = false
+    private var isHoldToScrollEnabled = true
     private var touchSensitivity = 0.5f
 
     private val scrollStateReceiver = object : BroadcastReceiver() {
@@ -146,6 +149,7 @@ class OverlayService : Service() {
             btnStop = view.findViewById(R.id.btnStop)
             btnClose = view.findViewById(R.id.btnClose)
             btnTouchMode = view.findViewById(R.id.btnTouchMode)
+            btnHoldScroll = view.findViewById(R.id.btnHoldScroll)
             btnSensitivityUp = view.findViewById(R.id.btnSensitivityUp)
             btnSensitivityDown = view.findViewById(R.id.btnSensitivityDown)
             currentSpeedText = view.findViewById(R.id.currentSpeedText)
@@ -154,6 +158,7 @@ class OverlayService : Service() {
             touchPositionIndicator = view.findViewById(R.id.touchPositionIndicator)
             gestureHelp = view.findViewById(R.id.gestureHelp)
             touchSensitivityLayout = view.findViewById(R.id.touchSensitivityLayout)
+            holdScrollLayout = view.findViewById(R.id.holdScrollLayout)
             
             speedButtons = listOf(
                 view.findViewById(R.id.btnSpeed1),
@@ -182,6 +187,11 @@ class OverlayService : Service() {
         // Touch mode toggle
         btnTouchMode.setOnClickListener {
             toggleTouchMode()
+        }
+        
+        // Hold-to-scroll toggle
+        btnHoldScroll.setOnClickListener {
+            toggleHoldToScroll()
         }
         
         // Sensitivity controls
@@ -260,6 +270,18 @@ class OverlayService : Service() {
         Log.d(TAG, "Touch mode ${if (isTouchModeEnabled) "enabled" else "disabled"}")
     }
     
+    private fun toggleHoldToScroll() {
+        isHoldToScrollEnabled = !isHoldToScrollEnabled
+        
+        // Send hold-to-scroll state to accessibility service
+        sendBroadcast(Intent(ScrollAccessibilityService.ACTION_SET_HOLD_TO_SCROLL).apply {
+            putExtra(ScrollAccessibilityService.EXTRA_HOLD_TO_SCROLL, isHoldToScrollEnabled)
+        })
+        
+        updateUI()
+        Log.d(TAG, "Hold-to-scroll ${if (isHoldToScrollEnabled) "enabled" else "disabled"}")
+    }
+    
     private fun adjustSensitivity(delta: Float) {
         touchSensitivity = (touchSensitivity + delta).coerceIn(0.0f, 1.0f)
         
@@ -301,6 +323,19 @@ class OverlayService : Service() {
             }, 1000)
         }
     }
+    
+    private fun showHoldScrollStatus(isHolding: Boolean, x: Float, y: Float) {
+        if (isHolding) {
+            statusIndicator.text = "👆⏳ Hold scrolling at (${x.toInt()}, ${y.toInt()})"
+        } else {
+            statusIndicator.text = "👆✅ Hold released - scrolling stopped"
+            
+            // Reset status after 1 second
+            Handler(Looper.getMainLooper()).postDelayed({
+                updateUI()
+            }, 1000)
+        }
+    }
 
     private fun setSpeed(speed: Int) {
         currentSpeed = speed
@@ -335,7 +370,14 @@ class OverlayService : Service() {
         
         // Show/hide touch mode controls
         touchSensitivityLayout.visibility = if (isTouchModeEnabled) View.VISIBLE else View.GONE
+        holdScrollLayout.visibility = if (isTouchModeEnabled) View.VISIBLE else View.GONE
         gestureHelp.visibility = if (isTouchModeEnabled) View.VISIBLE else View.GONE
+        
+        // Update hold-to-scroll button
+        btnHoldScroll.text = if (isHoldToScrollEnabled) "ON" else "OFF"
+        btnHoldScroll.setBackgroundColor(
+            if (isHoldToScrollEnabled) getColor(R.color.button_start) else getColor(R.color.error)
+        )
         
         // Update sensitivity display
         sensitivityText.text = "${(touchSensitivity * 100).toInt()}%"

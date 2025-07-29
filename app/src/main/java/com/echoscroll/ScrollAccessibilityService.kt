@@ -46,6 +46,10 @@ class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.To
                     val sensitivity = intent.getFloatExtra(EXTRA_SENSITIVITY, 0.5f)
                     touchScrollManager.setTouchSensitivity(sensitivity)
                 }
+                ACTION_SET_HOLD_TO_SCROLL -> {
+                    val holdToScrollEnabled = intent.getBooleanExtra(EXTRA_HOLD_TO_SCROLL, true)
+                    touchScrollManager.setHoldToScrollEnabled(holdToScrollEnabled)
+                }
             }
         }
     }
@@ -67,8 +71,23 @@ class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.To
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event?.let { 
             // Handle touch events for touch-to-scroll functionality
-            if (isTouchModeEnabled && event.eventType == AccessibilityEvent.TYPE_TOUCH_INTERACTION_START) {
-                handleTouchEvent(event)
+            when (event.eventType) {
+                AccessibilityEvent.TYPE_TOUCH_INTERACTION_START -> {
+                    if (isTouchModeEnabled) {
+                        handleTouchDownEvent(event)
+                    }
+                }
+                AccessibilityEvent.TYPE_TOUCH_INTERACTION_END -> {
+                    if (isTouchModeEnabled) {
+                        handleTouchUpEvent(event)
+                    }
+                }
+                AccessibilityEvent.TYPE_GESTURE_DETECTION_START,
+                AccessibilityEvent.TYPE_GESTURE_DETECTION_END -> {
+                    if (isTouchModeEnabled) {
+                        handleTouchEvent(event)
+                    }
+                }
             }
             
             // Auto-pause scrolling when user is actively interacting
@@ -93,6 +112,44 @@ class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.To
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling touch event", e)
+        }
+    }
+    
+    private fun handleTouchDownEvent(event: AccessibilityEvent) {
+        try {
+            // Extract touch coordinates for touch down
+            val source = event.source
+            if (source != null) {
+                val rect = android.graphics.Rect()
+                source.getBoundsInScreen(rect)
+                
+                val x = rect.centerX().toFloat()
+                val y = rect.centerY().toFloat()
+                
+                Log.d(TAG, "Touch down detected at ($x, $y)")
+                touchScrollManager.processTouchDown(x, y)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error handling touch down event", e)
+        }
+    }
+    
+    private fun handleTouchUpEvent(event: AccessibilityEvent) {
+        try {
+            // Extract touch coordinates for touch up
+            val source = event.source
+            if (source != null) {
+                val rect = android.graphics.Rect()
+                source.getBoundsInScreen(rect)
+                
+                val x = rect.centerX().toFloat()
+                val y = rect.centerY().toFloat()
+                
+                Log.d(TAG, "Touch up detected at ($x, $y)")
+                touchScrollManager.processTouchUp(x, y)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error handling touch up event", e)
         }
     }
     
@@ -169,6 +226,7 @@ class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.To
             addAction(ACTION_SET_SPEED)
             addAction(ACTION_TOGGLE_TOUCH_MODE)
             addAction(ACTION_SET_TOUCH_SENSITIVITY)
+            addAction(ACTION_SET_HOLD_TO_SCROLL)
         }
         registerReceiver(scrollReceiver, filter)
     }
@@ -268,6 +326,7 @@ class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.To
         const val ACTION_SET_SPEED = "com.echoscroll.SET_SPEED"
         const val ACTION_TOGGLE_TOUCH_MODE = "com.echoscroll.TOGGLE_TOUCH_MODE"
         const val ACTION_SET_TOUCH_SENSITIVITY = "com.echoscroll.SET_TOUCH_SENSITIVITY"
+        const val ACTION_SET_HOLD_TO_SCROLL = "com.echoscroll.SET_HOLD_TO_SCROLL"
         const val ACTION_SCROLL_STATE_CHANGED = "com.echoscroll.SCROLL_STATE_CHANGED"
         const val ACTION_TOUCH_SCROLL_START = "com.echoscroll.TOUCH_SCROLL_START"
         const val ACTION_TOUCH_GESTURE = "com.echoscroll.TOUCH_GESTURE"
@@ -277,6 +336,7 @@ class ScrollAccessibilityService : AccessibilityService(), TouchScrollManager.To
         const val EXTRA_IS_SCROLLING = "is_scrolling"
         const val EXTRA_TOUCH_MODE = "touch_mode"
         const val EXTRA_SENSITIVITY = "sensitivity"
+        const val EXTRA_HOLD_TO_SCROLL = "hold_to_scroll"
         const val EXTRA_TOUCH_X = "touch_x"
         const val EXTRA_TOUCH_Y = "touch_y"
         const val EXTRA_GESTURE_TYPE = "gesture_type"

@@ -23,6 +23,12 @@ class TouchScrollManager(private val context: Context) {
     private val doubleTapThreshold = 300L // ms
     private val longPressThreshold = 500L // ms
     
+    // Hold-to-scroll functionality
+    private var isHoldToScrollEnabled = true
+    private var isTouchHeld = false
+    private var touchDownTime = 0L
+    private var holdScrollStartDelay = 200L // ms before hold scrolling starts
+    
     // Smart scrolling parameters
     private var currentScrollSpeed = 3
     private var adaptiveScrolling = true
@@ -78,6 +84,13 @@ class TouchScrollManager(private val context: Context) {
         autoResumeEnabled = enabled
     }
     
+    fun setHoldToScrollEnabled(enabled: Boolean) {
+        isHoldToScrollEnabled = enabled
+        Log.d(TAG, "Hold-to-scroll ${if (enabled) "enabled" else "disabled"}")
+    }
+    
+    fun isHoldToScrollEnabled(): Boolean = isHoldToScrollEnabled
+    
     /**
      * Process touch events from AccessibilityService
      */
@@ -111,6 +124,48 @@ class TouchScrollManager(private val context: Context) {
         listener?.onTouchGesture(gesture, x, y)
     }
     
+    /**
+     * Process touch down events for hold-to-scroll
+     */
+    fun processTouchDown(x: Float, y: Float) {
+        if (!isTouchModeEnabled || !isHoldToScrollEnabled) return
+        
+        isTouchHeld = true
+        touchDownTime = System.currentTimeMillis()
+        lastTouchPosition.set(x, y)
+        
+        Log.d(TAG, "Touch down at ($x, $y) - Hold-to-scroll starting")
+        
+        // Start hold scrolling after a short delay
+        touchScrollHandler.postDelayed({
+            if (isTouchHeld) {
+                startHoldScrolling(x, y)
+            }
+        }, holdScrollStartDelay)
+    }
+    
+    /**
+     * Process touch up events for hold-to-scroll
+     */
+    fun processTouchUp(x: Float, y: Float) {
+        if (!isTouchModeEnabled || !isHoldToScrollEnabled) return
+        
+        val holdDuration = System.currentTimeMillis() - touchDownTime
+        isTouchHeld = false
+        
+        Log.d(TAG, "Touch up at ($x, $y) - Hold duration: ${holdDuration}ms")
+        
+        // Stop hold scrolling
+        if (isScrollingFromTouch) {
+            stopHoldScrolling()
+        }
+        
+        // If it was a very short hold (< 200ms), treat as tap
+        if (holdDuration < holdScrollStartDelay) {
+            handleQuickTap(x, y)
+        }
+    }
+    
     private fun detectGesture(x: Float, y: Float, currentTime: Long, eventTime: Long): TouchGesture {
         val timeSinceLastTouch = currentTime - lastTouchTime
         
@@ -134,6 +189,9 @@ class TouchScrollManager(private val context: Context) {
     }
     
     private fun handleSingleTap(x: Float, y: Float) {
+        // Only handle single tap if hold-to-scroll is disabled
+        if (isHoldToScrollEnabled) return
+        
         Log.d(TAG, "Single tap detected at ($x, $y)")
         
         if (isScrollingFromTouch) {
@@ -141,6 +199,17 @@ class TouchScrollManager(private val context: Context) {
             pauseTouchScrolling()
         } else {
             // Start scrolling from touch position
+            startTouchScrolling(x, y)
+        }
+    }
+    
+    private fun handleQuickTap(x: Float, y: Float) {
+        Log.d(TAG, "Quick tap detected at ($x, $y)")
+        
+        // For very short touches, toggle scrolling state
+        if (isScrollingFromTouch) {
+            pauseTouchScrolling()
+        } else {
             startTouchScrolling(x, y)
         }
     }
@@ -207,6 +276,32 @@ class TouchScrollManager(private val context: Context) {
         scheduleNextTouchScroll(scrollDelay, scrollDistance)
     }
     
+    private fun startHoldScrolling(x: Float, y: Float) {
+        if (!isTouchHeld) return // Touch was released before hold started
+        
+        stopTouchScrolling() // Stop any existing scrolling
+        
+        isScrollingFromTouch = true
+        
+        // Calculate scroll parameters for hold scrolling (slightly faster)
+        val scrollDelay = calculateHoldScrollDelay(y)
+        val scrollDistance = calculateScrollDistance(x, y)
+        
+        Log.d(TAG, "Starting hold scrolling from ($x, $y) with delay $scrollDelay")
+        
+        listener?.onTouchScrollStart(x, y)
+        
+        // Start continuous scrolling while held
+        scheduleNextHoldScroll(scrollDelay, scrollDistance)
+    }
+    
+    private fun stopHoldScrolling() {
+        isScrollingFromTouch = false
+        touchScrollRunnable?.let { touchScrollHandler.removeCallbacks(it) }
+        listener?.onTouchScrollStop()
+        Log.d(TAG, "Hold scrolling stopped")
+    }
+    
     private fun pauseTouchScrolling() {
         touchScrollRunnable?.let { touchScrollHandler.removeCallbacks(it) }
         Log.d(TAG, "Touch scrolling paused")
@@ -234,6 +329,28 @@ class TouchScrollManager(private val context: Context) {
                     delay
                 }
                 scheduleNextTouchScroll(nextDelay, distance)
+            }
+        }
+        
+        touchScrollHandler.postDelayed(touchScrollRunnable!!, delay)
+    }
+    
+    private fun scheduleNextHoldScroll(delay: Long, distance: Int) {
+        if (!isScrollingFromTouch || !isTouchHeld) return
+        
+        touchScrollRunnable = Runnable {
+            // Only continue if touch is still held
+            if (isTouchHeld) {
+                // Perform scroll gesture
+                performTouchScroll(distance)
+                
+                // Schedule next scroll if still holding
+                if (isScrollingFromTouch && isTouchHeld) {
+                    scheduleNextHoldScroll(delay, distance)
+                }
+            } else {
+                // Touch was released, stop scrolling
+                stopHoldScrolling()
             }
         }
         
@@ -268,6 +385,27 @@ class TouchScrollManager(private val context: Context) {
         return (baseDelay * adaptiveFactor).toLong()
     }
     
+    private fun calculateHoldScrollDelay(touchY: Float): Long {
+        // Hold scrolling is typically faster and more responsive
+        val baseDelay = when (currentScrollSpeed) {
+            1 -> 150L  // Very responsive for hold
+            2 -> 120L
+            3 -> 100L
+            4 -> 80L
+            5 -> 60L
+            else -> 100L
+        }
+        
+        // Slight adjustment based on touch position
+        val screenHeight = context.resources.displayMetrics.heightPixels
+        val relativePosition = touchY / screenHeight
+        
+        // Slightly slower at top, faster at bottom
+        val positionFactor = 0.8f + (relativePosition * 0.4f * touchSensitivity)
+        
+        return (baseDelay * positionFactor).toLong()
+    }
+    
     private fun calculateScrollDistance(touchX: Float, touchY: Float): Int {
         val density = context.resources.displayMetrics.density
         val baseDistance = (200 * density).toInt()
@@ -287,8 +425,13 @@ class TouchScrollManager(private val context: Context) {
      */
     fun isUserInteracting(): Boolean {
         val timeSinceLastTouch = System.currentTimeMillis() - lastTouchTime
-        return timeSinceLastTouch < 2000L // 2 seconds threshold
+        return timeSinceLastTouch < 2000L || isTouchHeld // 2 seconds threshold or currently holding
     }
+    
+    /**
+     * Check if currently in hold-to-scroll mode
+     */
+    fun isHoldScrolling(): Boolean = isTouchHeld && isScrollingFromTouch
     
     /**
      * Get current touch position for UI feedback

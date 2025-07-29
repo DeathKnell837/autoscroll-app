@@ -247,6 +247,13 @@
                     <span style="font-weight: bold;">Touch Mode</span>
                 </label>
             </div>
+            
+            <div id="holdScrollControls" style="margin: 10px 0; display: none;">
+                <label style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <input type="checkbox" id="holdToScroll" checked onchange="toggleHoldToScroll()" style="transform: scale(1.2);">
+                    <span style="font-weight: bold; font-size: 0.9em;">Hold to Scroll</span>
+                </label>
+            </div>
         </div>
 
         <div id="status" class="status ready">Ready to scroll</div>
@@ -268,7 +275,14 @@
                 <li><strong>Choose Speed:</strong> Click buttons 1-5 (1=slowest, 5=fastest)</li>
                 <li><strong>Enable Touch Mode:</strong> Check the Touch Mode checkbox</li>
                 <li><strong>Touch to Scroll:</strong> Click anywhere on this page to start scrolling from that position</li>
-                <li><strong>Gesture Controls:</strong>
+                <li><strong>Hold to Scroll Mode (Default):</strong>
+                    <ul>
+                        <li>Hold mouse button: Scroll while holding</li>
+                        <li>Release mouse: Stop scrolling</li>
+                        <li>Quick click: Start/pause scrolling</li>
+                    </ul>
+                </li>
+                <li><strong>Tap Mode (Alternative):</strong>
                     <ul>
                         <li>Single click: Start/pause scrolling</li>
                         <li>Double click: Stop scrolling</li>
@@ -289,8 +303,11 @@
         let isScrolling = false;
         let scrollInterval;
         let touchModeEnabled = false;
+        let holdToScrollEnabled = true;
         let lastClickTime = 0;
         let clickCount = 0;
+        let isMouseDown = false;
+        let mouseDownTimer;
 
         const speedNames = {
             1: "Very Slow (1)",
@@ -365,12 +382,35 @@
         
         function toggleTouchMode() {
             touchModeEnabled = document.getElementById('touchMode').checked;
-            updateStatus('ready', touchModeEnabled ? '👆 Touch mode enabled - Click anywhere to scroll!' : '🎮 Manual mode - Use buttons to control');
+            const holdControls = document.getElementById('holdScrollControls');
+            holdControls.style.display = touchModeEnabled ? 'block' : 'none';
+            
+            if (touchModeEnabled) {
+                if (holdToScrollEnabled) {
+                    updateStatus('ready', '👆⏳ Hold mode enabled - Hold mouse to scroll!');
+                } else {
+                    updateStatus('ready', '👆 Tap mode enabled - Click anywhere to scroll!');
+                }
+            } else {
+                updateStatus('ready', '🎮 Manual mode - Use buttons to control');
+            }
         }
         
-        // Touch mode click handler
+        function toggleHoldToScroll() {
+            holdToScrollEnabled = document.getElementById('holdToScroll').checked;
+            
+            if (touchModeEnabled) {
+                if (holdToScrollEnabled) {
+                    updateStatus('ready', '👆⏳ Hold mode enabled - Hold mouse to scroll!');
+                } else {
+                    updateStatus('ready', '👆 Tap mode enabled - Click anywhere to scroll!');
+                }
+            }
+        }
+        
+        // Touch mode click handler (for tap mode)
         document.addEventListener('click', (e) => {
-            if (!touchModeEnabled) return;
+            if (!touchModeEnabled || holdToScrollEnabled) return;
             
             // Ignore clicks on controls
             if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
@@ -406,22 +446,58 @@
             lastClickTime = currentTime;
         });
         
-        // Long press detection
-        let pressTimer;
+        // Hold-to-scroll handlers
         document.addEventListener('mousedown', (e) => {
-            if (!touchModeEnabled) return;
+            if (!touchModeEnabled || !holdToScrollEnabled) return;
+            
+            // Ignore clicks on controls
             if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
             
-            pressTimer = setTimeout(() => {
-                // Long press - cycle speed
-                const newSpeed = currentSpeed >= 5 ? 1 : currentSpeed + 1;
-                setSpeed(newSpeed);
-                updateStatus('ready', `⚡ Long-press detected - Speed changed to ${newSpeed}`);
-            }, 500);
+            isMouseDown = true;
+            
+            // Start hold scrolling after a short delay
+            mouseDownTimer = setTimeout(() => {
+                if (isMouseDown) {
+                    startScrolling();
+                    updateStatus('scrolling', `👆⏳ Hold scrolling from (${e.clientX}, ${e.clientY})`);
+                }
+            }, 200);
         });
         
-        document.addEventListener('mouseup', () => {
-            clearTimeout(pressTimer);
+        document.addEventListener('mouseup', (e) => {
+            if (!touchModeEnabled || !holdToScrollEnabled) return;
+            
+            const wasMouseDown = isMouseDown;
+            isMouseDown = false;
+            clearTimeout(mouseDownTimer);
+            
+            if (wasMouseDown && isScrolling) {
+                stopScrolling();
+                updateStatus('paused', '👆✅ Hold released - Scrolling stopped');
+            } else if (wasMouseDown && !isScrolling) {
+                // Quick tap - toggle scrolling
+                if (isScrolling) {
+                    stopScrolling();
+                    updateStatus('paused', '⏸️ Quick tap - Scrolling paused');
+                } else {
+                    startScrolling();
+                    updateStatus('scrolling', `🔄 Quick tap scrolling from (${e.clientX}, ${e.clientY})`);
+                }
+            }
+        });
+        
+        // Long press detection (for tap mode only)
+        let pressTimer;
+        document.addEventListener('contextmenu', (e) => {
+            if (!touchModeEnabled || holdToScrollEnabled) return;
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+            
+            e.preventDefault();
+            
+            // Right click - cycle speed
+            const newSpeed = currentSpeed >= 5 ? 1 : currentSpeed + 1;
+            setSpeed(newSpeed);
+            updateStatus('ready', `⚡ Right-click detected - Speed changed to ${newSpeed}`);
         });
         
         // Add keyboard shortcuts
@@ -439,6 +515,11 @@
             } else if (e.code === 'KeyT') {
                 document.getElementById('touchMode').checked = !touchModeEnabled;
                 toggleTouchMode();
+            } else if (e.code === 'KeyH') {
+                if (touchModeEnabled) {
+                    document.getElementById('holdToScroll').checked = !holdToScrollEnabled;
+                    toggleHoldToScroll();
+                }
             }
         });
 
